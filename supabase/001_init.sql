@@ -26,6 +26,7 @@ create table if not exists public.users (
   updated_at timestamptz not null default now()
 );
 
+drop trigger if exists trg_users_updated_at on public.users;
 create trigger trg_users_updated_at
 before update on public.users
 for each row execute function public.set_updated_at();
@@ -102,6 +103,7 @@ create table if not exists public.user_collection (
 create index if not exists idx_collection_user on public.user_collection (user_id);
 create index if not exists idx_collection_skylander on public.user_collection (skylander_id);
 
+drop trigger if exists trg_collection_updated_at on public.user_collection;
 create trigger trg_collection_updated_at
 before update on public.user_collection
 for each row execute function public.set_updated_at();
@@ -119,6 +121,7 @@ create table if not exists public.friendships (
 
 create index if not exists idx_friendships_friend on public.friendships (friend_user_id);
 
+drop trigger if exists trg_friendships_updated_at on public.friendships;
 create trigger trg_friendships_updated_at
 before update on public.friendships
 for each row execute function public.set_updated_at();
@@ -145,26 +148,31 @@ alter table public.friendships enable row level security;
 alter table public.collection_value_snapshots enable row level security;
 
 -- 8) Policies: users
-create policy if not exists "users_select_self"
+drop policy if exists "users_select_self" on public.users;
+create policy "users_select_self"
 on public.users for select
 using (auth.uid() = id);
 
-create policy if not exists "users_insert_self"
+drop policy if exists "users_insert_self" on public.users;
+create policy "users_insert_self"
 on public.users for insert
 with check (auth.uid() = id);
 
-create policy if not exists "users_update_self"
+drop policy if exists "users_update_self" on public.users;
+create policy "users_update_self"
 on public.users for update
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
 -- 9) Policies: skylanders (public read, moderator write)
-create policy if not exists "skylanders_read_all"
+drop policy if exists "skylanders_read_all" on public.skylanders;
+create policy "skylanders_read_all"
 on public.skylanders for select
 to anon, authenticated
 using (true);
 
-create policy if not exists "skylanders_write_moderator"
+drop policy if exists "skylanders_write_moderator" on public.skylanders;
+create policy "skylanders_write_moderator"
 on public.skylanders for all
 to authenticated
 using (
@@ -185,12 +193,14 @@ with check (
 );
 
 -- 10) Policies: skylander_prices
-create policy if not exists "prices_read_all"
+drop policy if exists "prices_read_all" on public.skylander_prices;
+create policy "prices_read_all"
 on public.skylander_prices for select
 to anon, authenticated
 using (true);
 
-create policy if not exists "prices_write_moderator"
+drop policy if exists "prices_write_moderator" on public.skylander_prices;
+create policy "prices_write_moderator"
 on public.skylander_prices for all
 to authenticated
 using (
@@ -211,56 +221,68 @@ with check (
 );
 
 -- 11) Policies: user_collection
-create policy if not exists "collection_select_own"
+drop policy if exists "collection_select_own" on public.user_collection;
+create policy "collection_select_own"
 on public.user_collection for select
 using (auth.uid() = user_id);
 
-create policy if not exists "collection_insert_own"
+drop policy if exists "collection_insert_own" on public.user_collection;
+create policy "collection_insert_own"
 on public.user_collection for insert
 with check (auth.uid() = user_id);
 
-create policy if not exists "collection_update_own"
+drop policy if exists "collection_update_own" on public.user_collection;
+create policy "collection_update_own"
 on public.user_collection for update
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
-create policy if not exists "collection_delete_own"
+drop policy if exists "collection_delete_own" on public.user_collection;
+create policy "collection_delete_own"
 on public.user_collection for delete
 using (auth.uid() = user_id);
 
 -- 12) Policies: friendships
-create policy if not exists "friendships_select_own"
+drop policy if exists "friendships_select_own" on public.friendships;
+create policy "friendships_select_own"
 on public.friendships for select
 using (auth.uid() = user_id);
 
-create policy if not exists "friendships_insert_own"
+drop policy if exists "friendships_insert_own" on public.friendships;
+create policy "friendships_insert_own"
 on public.friendships for insert
 with check (auth.uid() = user_id);
 
-create policy if not exists "friendships_update_own"
+drop policy if exists "friendships_update_own" on public.friendships;
+create policy "friendships_update_own"
 on public.friendships for update
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
-create policy if not exists "friendships_delete_own"
+drop policy if exists "friendships_delete_own" on public.friendships;
+create policy "friendships_delete_own"
 on public.friendships for delete
 using (auth.uid() = user_id);
 
 -- 13) Policies: snapshots
-create policy if not exists "snapshots_select_own"
+drop policy if exists "snapshots_select_own" on public.collection_value_snapshots;
+create policy "snapshots_select_own"
 on public.collection_value_snapshots for select
 using (auth.uid() = user_id);
 
-create policy if not exists "snapshots_insert_own"
+drop policy if exists "snapshots_insert_own" on public.collection_value_snapshots;
+create policy "snapshots_insert_own"
 on public.collection_value_snapshots for insert
 with check (auth.uid() = user_id);
 
-create policy if not exists "snapshots_update_own"
+drop policy if exists "snapshots_update_own" on public.collection_value_snapshots;
+create policy "snapshots_update_own"
 on public.collection_value_snapshots for update
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
-create policy if not exists "snapshots_delete_own"
+drop policy if exists "snapshots_delete_own" on public.collection_value_snapshots;
+create policy "snapshots_delete_own"
 on public.collection_value_snapshots for delete
 using (auth.uid() = user_id);
 
