@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toggleCollectionItem } from "@/app/collection/actions";
+import CollectionFilters from "@/app/collection/filters";
 import { createClient } from "@/lib/supabase/server";
 
 type Skylander = {
@@ -77,7 +78,7 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
 
   if (skylandersError || collectionError || pricesError) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-6 py-10">
+      <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-semibold">Ma collection</h1>
         <p className="text-sm text-red-600">Impossible de charger la checklist pour le moment.</p>
         <Link href="/" className="text-sm underline">
@@ -161,71 +162,25 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-6 py-10">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-semibold">Ma checklist Skylanders</h1>
       <p className="text-sm text-zinc-600">Clique pour cocher/décocher un item dans ta collection.</p>
       <p className="text-sm text-zinc-700">
         Valeur estimée: <span className="font-semibold">{totalEuro} €</span> ({totalItems} item(s))
       </p>
 
-      <form method="get" className="grid gap-2 rounded-md border border-zinc-800 p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <input
-          type="search"
-          name="q"
-          defaultValue={params.q ?? ""}
-          placeholder="Rechercher un nom"
-          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
-        />
-        <select
-          name="sort"
-          defaultValue={sort}
-          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
-        >
-          <option value="name_asc">Tri: Nom (A-Z)</option>
-          <option value="price_desc">Tri: Plus cher</option>
-          <option value="price_asc">Tri: Moins cher</option>
-        </select>
-        <select
-          name="series"
-          defaultValue={selectedSeries}
-          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
-        >
-          <option value="">Jeu: Tous</option>
-          {seriesOptions.map((series) => (
-            <option key={series} value={series}>
-              {series}
-            </option>
-          ))}
-        </select>
-        <select
-          name="element"
-          defaultValue={selectedElement}
-          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
-        >
-          <option value="">Type: Tous</option>
-          {elementOptions.map((element) => (
-            <option key={element} value={element}>
-              {element}
-            </option>
-          ))}
-        </select>
-        <label className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm">
-          <input type="checkbox" name="owned" value="1" defaultChecked={onlyOwned} />
-          Seulement cochés
-        </label>
-        <button type="submit" className="rounded-md border border-zinc-500 px-3 py-2 text-sm sm:col-span-2 lg:col-span-1">
-          Appliquer
-        </button>
-        <Link
-          href="/collection"
-          className="rounded-md border border-zinc-500 px-3 py-2 text-center text-sm sm:col-span-2 lg:col-span-1"
-        >
-          Réinitialiser
-        </Link>
-      </form>
+      <CollectionFilters
+        defaultQuery={params.q ?? ""}
+        defaultSort={sort}
+        defaultSeries={selectedSeries}
+        defaultElement={selectedElement}
+        defaultOwned={onlyOwned}
+        seriesOptions={seriesOptions}
+        elementOptions={elementOptions}
+      />
 
       {filteredSkylanders.length ? (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {paginatedSkylanders.map((skylander) => {
             const isOwned = ownedIds.has(skylander.id);
 
@@ -240,12 +195,20 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
                       isOwned ? "border-emerald-500" : "border-zinc-700"
                     }`}
                   >
-                    <span className="relative h-full w-full">
+                    <span
+                      className="relative h-full w-full bg-gradient-to-b from-zinc-900 to-zinc-950 p-2"
+                      style={{
+                        backgroundImage:
+                          "linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.04) 75%, rgba(255,255,255,0.04)), linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.04) 75%, rgba(255,255,255,0.04))",
+                        backgroundPosition: "0 0, 8px 8px",
+                        backgroundSize: "16px 16px",
+                      }}
+                    >
                       <Image
                         src={skylander.figure_image_url || "https://placehold.co/300x300?text=No+Image"}
                         alt={skylander.name}
                         fill
-                        className="object-cover"
+                        className="object-contain p-2"
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       />
                     </span>
