@@ -27,9 +27,23 @@ Ouvre `http://localhost:3000`.
 
 - `GET /login` -> connexion email/password
 - `GET /signup` -> inscription email/password
+- `POST signInWithGoogle` -> connexion OAuth Google
+- `GET /auth/callback` -> callback OAuth Supabase
 - `POST logout` depuis la home
 - `GET /collection` -> checklist utilisateur liée à `user_collection` + valeur estimée (dernier prix connu)
 - `GET /moderator` -> dashboard modération (role `moderator` ou `admin`)
+
+## Setup Google OAuth (Supabase)
+
+1. Google Cloud Console -> crée des identifiants OAuth 2.0 (Web application).
+2. Ajoute les Authorized redirect URIs Supabase:
+	- `https://<PROJECT_REF>.supabase.co/auth/v1/callback`
+3. Dans Supabase -> Authentication -> Sign In / Providers -> Google:
+	- active Google
+	- colle Client ID + Client Secret Google
+4. Dans Supabase -> Authentication -> URL Configuration:
+	- `Site URL`: ton URL Vercel
+	- `Redirect URLs`: ton URL Vercel + `http://localhost:3000`
 
 ## Fichiers clés
 
