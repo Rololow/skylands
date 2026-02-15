@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { logout } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +17,13 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center gap-6 px-6">
+      <Image
+        src="https://static.wikia.nocookie.net/skylanders/images/0/00/Skylanders_Logo.png/revision/latest?cb=20200327134807"
+        alt="Skylanders logo"
+        width={260}
+        height={92}
+        priority
+      />
       <h1 className="text-3xl font-semibold">SkyVault</h1>
 
       {user ? (

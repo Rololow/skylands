@@ -64,6 +64,8 @@ create table if not exists public.skylanders (
   series text,
   variant text,
   image_url text,
+  figure_image_url text,
+  card_image_url text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );

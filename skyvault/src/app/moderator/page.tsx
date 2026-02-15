@@ -13,6 +13,8 @@ type Skylander = {
   slug: string;
   element: string | null;
   series: string | null;
+  figure_image_url: string | null;
+  card_image_url: string | null;
 };
 
 type PriceRow = {
@@ -52,7 +54,7 @@ export default async function ModeratorPage() {
 
   const { data: skylanders } = await supabase
     .from("skylanders")
-    .select("id, name, slug, element, series")
+    .select("id, name, slug, element, series, figure_image_url, card_image_url")
     .order("name", { ascending: true })
     .limit(200);
 
@@ -77,6 +79,8 @@ export default async function ModeratorPage() {
           <input name="slug" required placeholder="Slug (ex: trigger-happy)" className="rounded-md border px-3 py-2" />
           <input name="element" placeholder="Element (optionnel)" className="rounded-md border px-3 py-2" />
           <input name="series" placeholder="Série (optionnel)" className="rounded-md border px-3 py-2" />
+          <input name="figureImageUrl" placeholder="URL image figurine" className="rounded-md border px-3 py-2" />
+          <input name="cardImageUrl" placeholder="URL image carte" className="rounded-md border px-3 py-2" />
           <button type="submit" className="w-fit rounded-md bg-black px-3 py-2 text-white">
             Ajouter
           </button>

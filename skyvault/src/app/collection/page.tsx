@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toggleCollectionItem } from "@/app/collection/actions";
@@ -6,8 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 type Skylander = {
   id: number;
   name: string;
-  element: string | null;
   series: string | null;
+  element: string | null;
+  figure_image_url: string | null;
 };
 
 type CollectionItem = {
@@ -20,7 +22,27 @@ type PriceRow = {
   price_cents: number;
 };
 
-export default async function CollectionPage() {
+type CollectionPageProps = {
+  searchParams: Promise<{
+    q?: string;
+    sort?: string;
+    series?: string;
+    element?: string;
+    owned?: string;
+    page?: string;
+  }>;
+};
+
+export default async function CollectionPage({ searchParams }: CollectionPageProps) {
+  const params = await searchParams;
+  const searchTerm = (params.q ?? "").trim().toLowerCase();
+  const sort = params.sort ?? "name_asc";
+  const selectedSeries = (params.series ?? "").trim();
+  const selectedElement = (params.element ?? "").trim();
+  const onlyOwned = params.owned === "1";
+  const requestedPage = Number.parseInt(params.page ?? "1", 10);
+  const pageSize = 50;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,17 +60,18 @@ export default async function CollectionPage() {
 
   const { data: skylanders, error: skylandersError } = await supabase
     .from("skylanders")
-    .select("id, name, element, series")
+    .select("id, name, series, element, figure_image_url")
     .order("name", { ascending: true });
 
   const collectionTyped = (collection as CollectionItem[] | null) ?? [];
-  const ownedSkylanderIds = collectionTyped.map((item) => item.skylander_id);
+  const skylandersTyped = (skylanders as Skylander[] | null) ?? [];
+  const allSkylanderIds = skylandersTyped.map((item) => item.id);
 
-  const { data: prices, error: pricesError } = ownedSkylanderIds.length
+  const { data: prices, error: pricesError } = allSkylanderIds.length
     ? await supabase
         .from("skylander_prices")
         .select("skylander_id, price_cents, observed_at")
-        .in("skylander_id", ownedSkylanderIds)
+        .in("skylander_id", allSkylanderIds)
         .order("observed_at", { ascending: false })
     : { data: [], error: null };
 
@@ -81,6 +104,62 @@ export default async function CollectionPage() {
   const totalItems = collectionTyped.reduce((sum, item) => sum + item.quantity, 0);
   const totalEuro = (totalCents / 100).toFixed(2);
 
+  const seriesOptions = [...new Set(skylandersTyped.map((item) => item.series).filter((value): value is string => Boolean(value)))].sort();
+  const elementOptions = [...new Set(skylandersTyped.map((item) => item.element).filter((value): value is string => Boolean(value)))].sort();
+
+  const filteredSkylanders = skylandersTyped.filter((skylander) => {
+    const nameMatches = searchTerm ? skylander.name.toLowerCase().includes(searchTerm) : true;
+    const seriesMatches = selectedSeries ? skylander.series === selectedSeries : true;
+    const elementMatches = selectedElement ? skylander.element === selectedElement : true;
+    const ownedMatches = onlyOwned ? ownedIds.has(skylander.id) : true;
+    return nameMatches && seriesMatches && elementMatches && ownedMatches;
+  });
+
+  filteredSkylanders.sort((left, right) => {
+    if (sort === "price_desc") {
+      return (latestPriceBySkylander.get(right.id) ?? 0) - (latestPriceBySkylander.get(left.id) ?? 0);
+    }
+
+    if (sort === "price_asc") {
+      return (latestPriceBySkylander.get(left.id) ?? 0) - (latestPriceBySkylander.get(right.id) ?? 0);
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredSkylanders.length / pageSize));
+  const currentPage = Number.isFinite(requestedPage)
+    ? Math.min(Math.max(requestedPage, 1), totalPages)
+    : 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedSkylanders = filteredSkylanders.slice(startIndex, startIndex + pageSize);
+
+  const makePageHref = (page: number) => {
+    const query = new URLSearchParams();
+
+    if (params.q) {
+      query.set("q", params.q);
+    }
+    if (sort !== "name_asc") {
+      query.set("sort", sort);
+    }
+    if (selectedSeries) {
+      query.set("series", selectedSeries);
+    }
+    if (selectedElement) {
+      query.set("element", selectedElement);
+    }
+    if (onlyOwned) {
+      query.set("owned", "1");
+    }
+    if (page > 1) {
+      query.set("page", String(page));
+    }
+
+    const encoded = query.toString();
+    return encoded ? `/collection?${encoded}` : "/collection";
+  };
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 px-6 py-10">
       <h1 className="text-2xl font-semibold">Ma checklist Skylanders</h1>
@@ -89,9 +168,65 @@ export default async function CollectionPage() {
         Valeur estimée: <span className="font-semibold">{totalEuro} €</span> ({totalItems} item(s))
       </p>
 
-      {(skylanders as Skylander[] | null)?.length ? (
-        <ul className="space-y-2">
-          {(skylanders as Skylander[]).map((skylander) => {
+      <form method="get" className="grid gap-2 rounded-md border border-zinc-800 p-3 sm:grid-cols-2 lg:grid-cols-4">
+        <input
+          type="search"
+          name="q"
+          defaultValue={params.q ?? ""}
+          placeholder="Rechercher un nom"
+          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
+        />
+        <select
+          name="sort"
+          defaultValue={sort}
+          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
+        >
+          <option value="name_asc">Tri: Nom (A-Z)</option>
+          <option value="price_desc">Tri: Plus cher</option>
+          <option value="price_asc">Tri: Moins cher</option>
+        </select>
+        <select
+          name="series"
+          defaultValue={selectedSeries}
+          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
+        >
+          <option value="">Jeu: Tous</option>
+          {seriesOptions.map((series) => (
+            <option key={series} value={series}>
+              {series}
+            </option>
+          ))}
+        </select>
+        <select
+          name="element"
+          defaultValue={selectedElement}
+          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
+        >
+          <option value="">Type: Tous</option>
+          {elementOptions.map((element) => (
+            <option key={element} value={element}>
+              {element}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm">
+          <input type="checkbox" name="owned" value="1" defaultChecked={onlyOwned} />
+          Seulement cochés
+        </label>
+        <button type="submit" className="rounded-md border border-zinc-500 px-3 py-2 text-sm sm:col-span-2 lg:col-span-1">
+          Appliquer
+        </button>
+        <Link
+          href="/collection"
+          className="rounded-md border border-zinc-500 px-3 py-2 text-center text-sm sm:col-span-2 lg:col-span-1"
+        >
+          Réinitialiser
+        </Link>
+      </form>
+
+      {filteredSkylanders.length ? (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {paginatedSkylanders.map((skylander) => {
             const isOwned = ownedIds.has(skylander.id);
 
             return (
@@ -99,14 +234,27 @@ export default async function CollectionPage() {
                 <form action={toggleCollectionItem}>
                   <input type="hidden" name="skylanderId" value={skylander.id} />
                   <input type="hidden" name="isOwned" value={String(isOwned)} />
-                  <button type="submit" className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-left">
-                    <span>
-                      <span className="font-medium">{skylander.name}</span>
-                      <span className="ml-2 text-sm text-zinc-500">
-                        {[skylander.element, skylander.series].filter(Boolean).join(" • ")}
-                      </span>
+                  <button
+                    type="submit"
+                    className={`relative flex aspect-square w-full flex-col overflow-hidden rounded-md border text-left ${
+                      isOwned ? "border-emerald-500" : "border-zinc-700"
+                    }`}
+                  >
+                    <span className="relative h-full w-full">
+                      <Image
+                        src={skylander.figure_image_url || "https://placehold.co/300x300?text=No+Image"}
+                        alt={skylander.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      />
                     </span>
-                    <span aria-label={isOwned ? "Possédé" : "Non possédé"}>{isOwned ? "☑" : "☐"}</span>
+                    <span className="absolute right-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-xs">
+                      {isOwned ? "✓" : "○"}
+                    </span>
+                    <span className="absolute inset-x-0 bottom-0 bg-black/80 px-2 py-1 text-xs font-medium text-white">
+                      {skylander.name}
+                    </span>
                   </button>
                 </form>
               </li>
@@ -114,8 +262,32 @@ export default async function CollectionPage() {
           })}
         </ul>
       ) : (
-        <p className="text-sm text-zinc-600">Aucun Skylander dans le catalogue pour l’instant.</p>
+        <p className="text-sm text-zinc-600">Aucun résultat pour les filtres actuels.</p>
       )}
+
+      {filteredSkylanders.length ? (
+        <div className="flex items-center justify-between rounded-md border border-zinc-800 px-3 py-2 text-sm">
+          <span>
+            Page {currentPage}/{totalPages} • {filteredSkylanders.length} résultat(s)
+          </span>
+          <div className="flex items-center gap-2">
+            {currentPage > 1 ? (
+              <Link href={makePageHref(currentPage - 1)} className="rounded-md border border-zinc-700 px-2 py-1">
+                Précédent
+              </Link>
+            ) : (
+              <span className="rounded-md border border-zinc-800 px-2 py-1 text-zinc-500">Précédent</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={makePageHref(currentPage + 1)} className="rounded-md border border-zinc-700 px-2 py-1">
+                Suivant
+              </Link>
+            ) : (
+              <span className="rounded-md border border-zinc-800 px-2 py-1 text-zinc-500">Suivant</span>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <Link href="/" className="text-sm underline">
         Retour accueil

@@ -24,6 +24,8 @@ export async function createSkylander(formData: FormData) {
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
   const element = String(formData.get("element") ?? "").trim() || null;
   const series = String(formData.get("series") ?? "").trim() || null;
+  const figureImageUrl = String(formData.get("figureImageUrl") ?? "").trim() || null;
+  const cardImageUrl = String(formData.get("cardImageUrl") ?? "").trim() || null;
 
   if (!name || !slug) {
     return;
@@ -39,6 +41,8 @@ export async function createSkylander(formData: FormData) {
     slug,
     element,
     series,
+    figure_image_url: figureImageUrl,
+    card_image_url: cardImageUrl,
   });
 
   revalidatePath("/moderator");
