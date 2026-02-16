@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toggleCollectionItem } from "@/app/collection/actions";
 import CollectionFilters from "@/app/collection/filters";
+import AppHeader from "@/components/app-header";
 import { createClient } from "@/lib/supabase/server";
 
 type Skylander = {
@@ -63,6 +64,9 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
     .from("skylanders")
     .select("id, name, series, element, figure_image_url")
     .order("name", { ascending: true });
+
+  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const isModerator = profile?.role === "moderator" || profile?.role === "admin";
 
   const collectionTyped = (collection as CollectionItem[] | null) ?? [];
   const skylandersTyped = (skylanders as Skylander[] | null) ?? [];
@@ -163,6 +167,7 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
+      <AppHeader showModeratorLink={isModerator} />
       <h1 className="text-2xl font-semibold">Ma checklist Skylanders</h1>
       <p className="text-sm text-zinc-600">Clique pour cocher/décocher un item dans ta collection.</p>
       <p className="text-sm text-zinc-700">

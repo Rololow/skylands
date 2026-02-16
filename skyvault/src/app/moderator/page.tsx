@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AppHeader from "@/components/app-header";
 import { createSkylander, createSkylanderPrice } from "@/app/moderator/actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -70,6 +71,7 @@ export default async function ModeratorPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
+      <AppHeader showCollectionLink />
       <h1 className="text-2xl font-semibold">Dashboard modérateur</h1>
 
       <section className="space-y-3">
