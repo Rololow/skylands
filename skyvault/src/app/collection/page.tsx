@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toggleCollectionItem } from "@/app/collection/actions";
 import AppHeader from "@/components/app-header";
+import CollectionValueChart from "@/components/collection-value-chart";
 import { createClient } from "@/lib/supabase/server";
 
 type Skylander = {
@@ -21,6 +22,7 @@ type CollectionItem = {
 type PriceRow = {
   skylander_id: number;
   price_cents: number;
+  observed_at: string;
 };
 
 type CollectionPageProps = {
@@ -63,14 +65,15 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
 
   const collectionTyped = (collection as CollectionItem[] | null) ?? [];
   const skylandersTyped = (skylanders as Skylander[] | null) ?? [];
-  const allSkylanderIds = skylandersTyped.map((item) => item.id);
+  const ownedIds = new Set(collectionTyped.map((item) => item.skylander_id));
+  const ownedSkylanderIds = Array.from(ownedIds);
 
-  const { data: prices, error: pricesError } = allSkylanderIds.length
+  const { data: prices, error: pricesError } = ownedSkylanderIds.length
     ? await supabase
         .from("skylander_prices")
         .select("skylander_id, price_cents, observed_at")
-        .in("skylander_id", allSkylanderIds)
-        .order("observed_at", { ascending: false })
+        .in("skylander_id", ownedSkylanderIds)
+        .order("observed_at", { ascending: true })
     : { data: [], error: null };
 
   if (skylandersError || collectionError || pricesError) {
@@ -85,14 +88,47 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
     );
   }
 
-  const ownedIds = new Set(collectionTyped.map((item) => item.skylander_id));
+  const pricesTyped = (prices as PriceRow[] | null) ?? [];
 
+  // Calculate latest prices
   const latestPriceBySkylander = new Map<number, number>();
-  ((prices as PriceRow[] | null) ?? []).forEach((row) => {
+  [...pricesTyped].reverse().forEach((row) => {
     if (!latestPriceBySkylander.has(row.skylander_id)) {
       latestPriceBySkylander.set(row.skylander_id, row.price_cents);
     }
   });
+
+  // Calculate historical collection value
+  const dateValueMap = new Map<string, number>();
+  pricesTyped.forEach((row) => {
+    const date = row.observed_at.split('T')[0]; // Get just the date part
+    if (!dateValueMap.has(date)) {
+      dateValueMap.set(date, 0);
+    }
+  });
+
+  // For each date, calculate total collection value
+  const chartData = Array.from(dateValueMap.keys()).map((date) => {
+    const pricesBySkylander = new Map<number, number>();
+    
+    // Get the most recent price for each skylander up to this date
+    pricesTyped.forEach((row) => {
+      if (row.observed_at.split('T')[0] <= date) {
+        pricesBySkylander.set(row.skylander_id, row.price_cents);
+      }
+    });
+    
+    // Calculate total value for this date
+    const totalValue = collectionTyped.reduce((sum, item) => {
+      const price = pricesBySkylander.get(item.skylander_id) ?? 0;
+      return sum + (price * item.quantity);
+    }, 0);
+    
+    return {
+      date,
+      value: totalValue / 100,
+    };
+  }).filter((point) => point.value > 0);
 
   const totalCents = collectionTyped.reduce((sum, item) => {
     const latestPrice = latestPriceBySkylander.get(item.skylander_id) ?? 0;
@@ -154,6 +190,8 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
       <p className="text-sm text-zinc-700">
         Valeur estimée: <span className="font-semibold">{totalEuro} €</span> ({totalItems} item(s))
       </p>
+
+      <CollectionValueChart data={chartData} />
 
       <form method="get" className="flex flex-wrap gap-2">
         <input
