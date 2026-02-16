@@ -40,4 +40,5 @@ export async function toggleCollectionItem(formData: FormData) {
   }
 
   revalidatePath("/collection");
+  revalidatePath("/list");
 }

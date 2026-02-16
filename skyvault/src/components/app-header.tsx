@@ -4,12 +4,14 @@ import { logout } from "@/app/auth/actions";
 
 type AppHeaderProps = {
   showCollectionLink?: boolean;
+  showListLink?: boolean;
   showModeratorLink?: boolean;
   showLogout?: boolean;
 };
 
 export default function AppHeader({
   showCollectionLink = false,
+  showListLink = false,
   showModeratorLink = false,
   showLogout = true,
 }: AppHeaderProps) {
@@ -27,7 +29,12 @@ export default function AppHeader({
       <div className="flex flex-wrap items-center gap-2">
         {showCollectionLink ? (
           <Link href="/collection" className="rounded-md border px-3 py-2 text-sm">
-            Collection
+            Ma collection
+          </Link>
+        ) : null}
+        {showListLink ? (
+          <Link href="/list" className="rounded-md border px-3 py-2 text-sm">
+            Liste complète
           </Link>
         ) : null}
         {showModeratorLink ? (

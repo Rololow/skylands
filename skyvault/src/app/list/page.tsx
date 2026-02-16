@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toggleCollectionItem } from "@/app/collection/actions";
+import ListFilters from "@/app/list/filters";
 import AppHeader from "@/components/app-header";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,18 +24,24 @@ type PriceRow = {
   price_cents: number;
 };
 
-type CollectionPageProps = {
+type ListPageProps = {
   searchParams: Promise<{
     q?: string;
     sort?: string;
+    series?: string;
+    element?: string;
+    owned?: string;
     page?: string;
   }>;
 };
 
-export default async function CollectionPage({ searchParams }: CollectionPageProps) {
+export default async function ListPage({ searchParams }: ListPageProps) {
   const params = await searchParams;
   const searchTerm = (params.q ?? "").trim().toLowerCase();
   const sort = params.sort ?? "name_asc";
+  const selectedSeries = (params.series ?? "").trim();
+  const selectedElement = (params.element ?? "").trim();
+  const onlyOwned = params.owned === "1";
   const requestedPage = Number.parseInt(params.page ?? "1", 10);
   const pageSize = 50;
 
@@ -76,8 +83,8 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
   if (skylandersError || collectionError || pricesError) {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold">Ma collection</h1>
-        <p className="text-sm text-red-600">Impossible de charger la checklist pour le moment.</p>
+        <h1 className="text-2xl font-semibold">Liste des Skylanders</h1>
+        <p className="text-sm text-red-600">Impossible de charger la liste pour le moment.</p>
         <Link href="/" className="text-sm underline">
           Retour accueil
         </Link>
@@ -94,20 +101,15 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
     }
   });
 
-  const totalCents = collectionTyped.reduce((sum, item) => {
-    const latestPrice = latestPriceBySkylander.get(item.skylander_id) ?? 0;
-    return sum + latestPrice * item.quantity;
-  }, 0);
+  const seriesOptions = [...new Set(skylandersTyped.map((item) => item.series).filter((value): value is string => Boolean(value)))].sort();
+  const elementOptions = [...new Set(skylandersTyped.map((item) => item.element).filter((value): value is string => Boolean(value)))].sort();
 
-  const totalItems = collectionTyped.reduce((sum, item) => sum + item.quantity, 0);
-  const totalEuro = (totalCents / 100).toFixed(2);
-
-  // Only show owned Skylanders
-  const ownedSkylanders = skylandersTyped.filter((skylander) => ownedIds.has(skylander.id));
-
-  const filteredSkylanders = ownedSkylanders.filter((skylander) => {
+  const filteredSkylanders = skylandersTyped.filter((skylander) => {
     const nameMatches = searchTerm ? skylander.name.toLowerCase().includes(searchTerm) : true;
-    return nameMatches;
+    const seriesMatches = selectedSeries ? skylander.series === selectedSeries : true;
+    const elementMatches = selectedElement ? skylander.element === selectedElement : true;
+    const ownedMatches = onlyOwned ? ownedIds.has(skylander.id) : true;
+    return nameMatches && seriesMatches && elementMatches && ownedMatches;
   });
 
   filteredSkylanders.sort((left, right) => {
@@ -138,47 +140,38 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
     if (sort !== "name_asc") {
       query.set("sort", sort);
     }
+    if (selectedSeries) {
+      query.set("series", selectedSeries);
+    }
+    if (selectedElement) {
+      query.set("element", selectedElement);
+    }
+    if (onlyOwned) {
+      query.set("owned", "1");
+    }
     if (page > 1) {
       query.set("page", String(page));
     }
 
     const encoded = query.toString();
-    return encoded ? `/collection?${encoded}` : "/collection";
+    return encoded ? `/list?${encoded}` : "/list";
   };
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
-      <AppHeader showListLink showModeratorLink={isModerator} />
-      <h1 className="text-2xl font-semibold">Ma collection</h1>
-      <p className="text-sm text-zinc-600">Voici les Skylanders que tu possèdes. Clique pour les retirer de ta collection.</p>
-      <p className="text-sm text-zinc-700">
-        Valeur estimée: <span className="font-semibold">{totalEuro} €</span> ({totalItems} item(s))
-      </p>
+      <AppHeader showCollectionLink showModeratorLink={isModerator} />
+      <h1 className="text-2xl font-semibold">Liste complète des Skylanders</h1>
+      <p className="text-sm text-zinc-600">Parcours tous les Skylanders disponibles. Clique pour ajouter/retirer de ta collection.</p>
 
-      <form method="get" className="flex flex-wrap gap-2">
-        <input
-          type="search"
-          name="q"
-          defaultValue={params.q ?? ""}
-          placeholder="Rechercher dans ma collection"
-          className="flex-1 rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm"
-        />
-        <select
-          name="sort"
-          defaultValue={sort}
-          className="rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm [&>option]:bg-white [&>option]:text-black"
-        >
-          <option value="name_asc">Tri: Nom (A-Z)</option>
-          <option value="price_desc">Tri: Plus cher</option>
-          <option value="price_asc">Tri: Moins cher</option>
-        </select>
-        <button type="submit" className="rounded-md border border-zinc-500 px-4 py-2 text-sm">
-          Filtrer
-        </button>
-        <Link href="/collection" className="rounded-md border border-zinc-500 px-4 py-2 text-center text-sm">
-          Réinitialiser
-        </Link>
-      </form>
+      <ListFilters
+        defaultQuery={params.q ?? ""}
+        defaultSort={sort}
+        defaultSeries={selectedSeries}
+        defaultElement={selectedElement}
+        defaultOwned={onlyOwned}
+        seriesOptions={seriesOptions}
+        elementOptions={elementOptions}
+      />
 
       {filteredSkylanders.length ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -226,18 +219,7 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
           })}
         </ul>
       ) : (
-        <div className="rounded-md border border-zinc-700 p-6 text-center">
-          <p className="text-sm text-zinc-600">
-            {ownedSkylanders.length === 0 
-              ? "Ta collection est vide. Va dans la liste pour ajouter des Skylanders !" 
-              : "Aucun résultat pour cette recherche."}
-          </p>
-          {ownedSkylanders.length === 0 && (
-            <Link href="/list" className="mt-3 inline-block rounded-md border border-zinc-500 px-4 py-2 text-sm">
-              Parcourir la liste
-            </Link>
-          )}
-        </div>
+        <p className="text-sm text-zinc-600">Aucun résultat pour les filtres actuels.</p>
       )}
 
       {filteredSkylanders.length ? (

@@ -71,7 +71,7 @@ export default async function ModeratorPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-6 py-10">
-      <AppHeader showCollectionLink />
+      <AppHeader showCollectionLink showListLink />
       <h1 className="text-2xl font-semibold">Dashboard modérateur</h1>
 
       <section className="space-y-3">
