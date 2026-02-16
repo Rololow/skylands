@@ -19,7 +19,24 @@ Optionnel: exécute `supabase/005_apply_priceandimage_minimal.sql` pour applique
 ## 6) Import complet CSV (nom + prix + image)
 Optionnel: exécute `supabase/006_apply_priceandimage_full.sql` pour importer tout `priceandimage.csv` (685 items, 681 prix).
 
-## 7) Créer ton premier modérateur
+## 7) Migration item_type (pour tri hiérarchique)
+Exécute `supabase/007_add_item_type.sql` pour ajouter la colonne `item_type` qui permet de différencier figurines, cartes, et objets.
+
+**Note:** Le tri hiérarchique fonctionne en 3 niveaux :
+- **Jeu (series)** : Giants, Spyro's Adventure, Swap Force, etc.
+- **Catégorie** : déterminée automatiquement selon `variant` et `item_type`
+  - Giant Skylanders
+  - New (Series 1) Skylanders
+  - Returning (Series 2) Skylanders
+  - LightCore Skylanders
+  - Figurines (défaut)
+  - Magic Items
+  - Cartes
+  - In-Game Variants (Legendary, Jade, etc.)
+  - Chase Variants (Metallic, Glow, Flocked, etc.)
+- **Élément** : Fire, Water, Magic, Tech, etc.
+
+## 8) Créer ton premier modérateur
 Après création d'un utilisateur, passe son rôle:
 
 ```sql
@@ -28,10 +45,10 @@ set role = 'moderator'
 where id = 'USER_UUID';
 ```
 
-## 8) Variables à garder
+## 9) Variables à garder
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (secret, serveur uniquement)
 
-## 9) Étape suivante recommandée
+## 10) Étape suivante recommandée
 Implémenter l'auth Next.js (Supabase Auth) puis brancher les requêtes CRUD sur `user_collection`.

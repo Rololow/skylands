@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toggleCollectionItem } from "@/app/collection/actions";
 import AppHeader from "@/components/app-header";
 import CollectionValueChart from "@/components/collection-value-chart";
+import GroupedSkylandersGrid from "@/components/grouped-skylanders-grid";
 import { createClient } from "@/lib/supabase/server";
 
 type Skylander = {
@@ -11,6 +11,8 @@ type Skylander = {
   name: string;
   series: string | null;
   element: string | null;
+  item_type: string | null;
+  variant: string | null;
   figure_image_url: string | null;
 };
 
@@ -57,7 +59,7 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
 
   const { data: skylanders, error: skylandersError } = await supabase
     .from("skylanders")
-    .select("id, name, series, element, figure_image_url")
+    .select("id, name, series, element, item_type, variant, figure_image_url")
     .order("name", { ascending: true });
 
   const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
@@ -219,50 +221,17 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
       </form>
 
       {filteredSkylanders.length ? (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {paginatedSkylanders.map((skylander) => {
-            const isOwned = ownedIds.has(skylander.id);
-
-            return (
-              <li key={skylander.id}>
-                <form action={toggleCollectionItem}>
-                  <input type="hidden" name="skylanderId" value={skylander.id} />
-                  <input type="hidden" name="isOwned" value={String(isOwned)} />
-                  <button
-                    type="submit"
-                    className={`relative flex aspect-square w-full flex-col overflow-hidden rounded-md border text-left ${
-                      isOwned ? "border-emerald-500" : "border-zinc-700"
-                    }`}
-                  >
-                    <span
-                      className="relative h-full w-full bg-gradient-to-b from-zinc-900 to-zinc-950 p-2"
-                      style={{
-                        backgroundImage:
-                          "linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.04) 75%, rgba(255,255,255,0.04)), linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.04) 75%, rgba(255,255,255,0.04))",
-                        backgroundPosition: "0 0, 8px 8px",
-                        backgroundSize: "16px 16px",
-                      }}
-                    >
-                      <Image
-                        src={skylander.figure_image_url || "https://placehold.co/300x300?text=No+Image"}
-                        alt={skylander.name}
-                        fill
-                        className="object-contain p-2"
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      />
-                    </span>
-                    <span className="absolute right-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-xs">
-                      {isOwned ? "✓" : "○"}
-                    </span>
-                    <span className="absolute inset-x-0 bottom-0 bg-black/80 px-2 py-1 text-xs font-medium text-white">
-                      {skylander.name}
-                    </span>
-                  </button>
-                </form>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <GroupedSkylandersGrid
+            skylanders={filteredSkylanders}
+            ownedIds={ownedIds}
+            toggleAction={toggleCollectionItem}
+          />
+          
+          <div className="rounded-md border border-zinc-800 px-3 py-2 text-sm text-center">
+            {filteredSkylanders.length} résultat(s)
+          </div>
+        </>
       ) : (
         <div className="rounded-md border border-zinc-700 p-6 text-center">
           <p className="text-sm text-zinc-600">
@@ -277,30 +246,6 @@ export default async function CollectionPage({ searchParams }: CollectionPagePro
           )}
         </div>
       )}
-
-      {filteredSkylanders.length ? (
-        <div className="flex items-center justify-between rounded-md border border-zinc-800 px-3 py-2 text-sm">
-          <span>
-            Page {currentPage}/{totalPages} • {filteredSkylanders.length} résultat(s)
-          </span>
-          <div className="flex items-center gap-2">
-            {currentPage > 1 ? (
-              <Link href={makePageHref(currentPage - 1)} className="rounded-md border border-zinc-700 px-2 py-1">
-                Précédent
-              </Link>
-            ) : (
-              <span className="rounded-md border border-zinc-800 px-2 py-1 text-zinc-500">Précédent</span>
-            )}
-            {currentPage < totalPages ? (
-              <Link href={makePageHref(currentPage + 1)} className="rounded-md border border-zinc-700 px-2 py-1">
-                Suivant
-              </Link>
-            ) : (
-              <span className="rounded-md border border-zinc-800 px-2 py-1 text-zinc-500">Suivant</span>
-            )}
-          </div>
-        </div>
-      ) : null}
 
       <Link href="/" className="text-sm underline">
         Retour accueil

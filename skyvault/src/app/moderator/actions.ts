@@ -24,6 +24,8 @@ export async function createSkylander(formData: FormData) {
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
   const element = String(formData.get("element") ?? "").trim() || null;
   const series = String(formData.get("series") ?? "").trim() || null;
+  const itemType = String(formData.get("itemType") ?? "").trim() || "Figurine";
+  const variant = String(formData.get("variant") ?? "").trim() || null;
   const figureImageUrl = String(formData.get("figureImageUrl") ?? "").trim() || null;
   const cardImageUrl = String(formData.get("cardImageUrl") ?? "").trim() || null;
 
@@ -41,12 +43,15 @@ export async function createSkylander(formData: FormData) {
     slug,
     element,
     series,
+    item_type: itemType,
+    variant,
     figure_image_url: figureImageUrl,
     card_image_url: cardImageUrl,
   });
 
   revalidatePath("/moderator");
   revalidatePath("/collection");
+  revalidatePath("/list");
 }
 
 export async function createSkylanderPrice(formData: FormData) {

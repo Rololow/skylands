@@ -62,6 +62,7 @@ create table if not exists public.skylanders (
   name text not null,
   element text,
   series text,
+  item_type text,
   variant text,
   image_url text,
   figure_image_url text,
@@ -72,6 +73,7 @@ create table if not exists public.skylanders (
 
 create index if not exists idx_skylanders_name on public.skylanders (name);
 create index if not exists idx_skylanders_series on public.skylanders (series);
+create index if not exists idx_skylanders_item_type on public.skylanders (item_type);
 
 -- 3) Price observations
 create table if not exists public.skylander_prices (

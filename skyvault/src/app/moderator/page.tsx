@@ -79,10 +79,16 @@ export default async function ModeratorPage() {
         <form action={createSkylander} className="grid gap-3 md:grid-cols-2">
           <input name="name" required placeholder="Nom" className="rounded-md border px-3 py-2" />
           <input name="slug" required placeholder="Slug (ex: trigger-happy)" className="rounded-md border px-3 py-2" />
-          <input name="element" placeholder="Element (optionnel)" className="rounded-md border px-3 py-2" />
-          <input name="series" placeholder="Série (optionnel)" className="rounded-md border px-3 py-2" />
-          <input name="figureImageUrl" placeholder="URL image figurine" className="rounded-md border px-3 py-2" />
-          <input name="cardImageUrl" placeholder="URL image carte" className="rounded-md border px-3 py-2" />
+          <input name="element" placeholder="Element (ex: Fire, Water)" className="rounded-md border px-3 py-2" />
+          <input name="series" placeholder="Série (ex: Giants)" className="rounded-md border px-3 py-2" />
+          <select name="itemType" className="rounded-md border px-3 py-2">
+            <option value="Figurine">Figurine</option>
+            <option value="Carte">Carte</option>
+            <option value="Objet">Objet / Magic Item</option>
+          </select>
+          <input name="variant" placeholder="Variant (ex: Series 1, LightCore)" className="rounded-md border px-3 py-2" />
+          <input name="figureImageUrl" placeholder="URL image figurine" className="rounded-md border px-3 py-2 md:col-span-2" />
+          <input name="cardImageUrl" placeholder="URL image carte" className="rounded-md border px-3 py-2 md:col-span-2" />
           <button type="submit" className="w-fit rounded-md bg-black px-3 py-2 text-white">
             Ajouter
           </button>
